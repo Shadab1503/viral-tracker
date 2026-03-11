@@ -15,6 +15,8 @@ APIFY_TOKEN        = os.environ.get("APIFY_TOKEN")
 NEWSAPI_KEY        = os.environ.get("NEWSAPI_KEY")
 ALERT_EMAIL        = os.environ.get("ALERT_EMAIL")
 SMTP_PASS          = os.environ.get("SMTP_PASS")
+TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 VIRALITY_THRESHOLD = 3
 
 
