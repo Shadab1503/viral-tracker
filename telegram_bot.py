@@ -21,10 +21,7 @@ bot     = telebot.TeleBot(TELEGRAM_TOKEN)
 apify   = ApifyClient(APIFY_TOKEN)
 newsapi = NewsApiClient(api_key=NEWSAPI_KEY)
 
-reddit = praw.Reddit(
-    client_id=REDDIT_CLIENT_ID,
-    client_secret=REDDIT_CLIENT_SECRET,
-    user_agent="viral-tracker/1.0"
+
 )
 
 
