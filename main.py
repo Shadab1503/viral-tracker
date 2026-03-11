@@ -323,7 +323,13 @@ def run_scan():
 # ─── 10. SCHEDULER SETUP ───────────────────────────────────────────────────
 if __name__ == "__main__":
     scheduler = BlockingScheduler()
-    scheduler.add_job(run_scan, "interval", hours=1)   # scan every 1 hour
+    scheduler.add_job(run_scan, "interval", hours=1)
     print("🚀 USA Viral Trend Tracker started. Scanning every hour...")
-    run_scan()          # run once immediately on start
+    
+    send_alert([{"topic": "testTopic", "platforms": ["tiktok","twitter"], "viral_score": 75, "detected_at": "now"}])
+    
+    try:
+        run_scan()
+    except Exception as e:
+        print(f"[STARTUP ERROR] {e}")
     scheduler.start()
