@@ -3,3 +3,5 @@ newsapi-python
 APScheduler
 requests
 pandas
+pytrends
+rich
