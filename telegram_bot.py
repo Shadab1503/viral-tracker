@@ -1,27 +1,22 @@
-# telegram_bot.py
-# pip install pyTelegramBotAPI pytrends newsapi-python apify-client requests
-
 import os
-import telebot
 import requests
 import pandas as pd
 from datetime import datetime
 from apify_client import ApifyClient
 from newsapi import NewsApiClient
 from pytrends.request import TrendReq
+import telebot
 
-# ─── CONFIG ────────────────────────────────────────────────────────────────
-TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
-APIFY_TOKEN      = os.environ.get("APIFY_TOKEN")
-NEWSAPI_KEY      = os.environ.get("NEWSAPI_KEY")
+APIFY_TOKEN = os.environ.get("APIFY_TOKEN")
+NEWSAPI_KEY = os.environ.get("NEWSAPI_KEY")
 
-bot     = telebot.TeleBot(TELEGRAM_TOKEN)
-apify   = ApifyClient(APIFY_TOKEN)
+bot = telebot.TeleBot(TELEGRAM_TOKEN)
+apify = ApifyClient(APIFY_TOKEN)
 newsapi = NewsApiClient(api_key=NEWSAPI_KEY)
 
 
-# ─── RESEARCH FUNCTIONS (same as researcher.py) ─────────────────────────────
 def get_google_trends(keyword):
     try:
         pytrend = TrendReq(hl='en-US', tz=360)
@@ -33,21 +28,23 @@ def get_google_trends(keyword):
         if spike_weeks.empty:
             return None
         related = pytrend.related_queries()
-        rising  = related.get(keyword, {}).get("rising", pd.DataFrame())
+        rising = related.get(keyword, {}).get("rising", pd.DataFrame())
         top_related = rising["query"].tolist()[:3] if not rising.empty else []
         return {
             "first_spike": spike_weeks.index[0].strftime("%B %Y"),
-            "peak_month":  df[keyword].idxmax().strftime("%B %Y"),
-            "peak_score":  int(df[keyword].max()),
-            "related":     top_related
+            "peak_month": df[keyword].idxmax().strftime("%B %Y"),
+            "peak_score": int(df[keyword].max()),
+            "related": top_related
         }
-    except:
+    except Exception as e:
         return None
+
 
 def get_first_news(keyword):
     try:
         result = newsapi.get_everything(
-            q=keyword, language="en",
+            q=keyword,
+            language="en",
             sort_by="publishedAt",
             from_param="2020-01-01",
             page_size=5
@@ -57,71 +54,96 @@ def get_first_news(keyword):
             return None
         a = articles[0]
         return {
-            "title":  a["title"],
+            "title": a["title"],
             "source": a["source"]["name"],
-            "date":   a["publishedAt"][:10],
-            "url":    a["url"]
+            "date": a["publishedAt"][:10],
+            "url": a["url"]
         }
-    except:
+    except Exception as e:
         return None
 
-def get_first_tiktok(keyword):
-    try:
-        run = apify.actor("sociavault/tiktok-keyword-search-scraper").call(
-            run_input={"query": keyword, "sort_by": "date", "region": "US", "max_results": 3}
-        )
-        items = list(apify.dataset(run["defaultDatasetId"]).iterate_items())
-        if not items:
-            return None
-        items.sort(key=lambda x: x.get("createTime", ""))
-        v = items[0]
-        return {
-            "author": v.get("author", {}).get("nickname", "Unknown"),
-            "views":  v.get("stats", {}).get("playCount", 0),
-            "date":   datetime.fromtimestamp(int(v.get("createTime", 0))).strftime("%Y-%m-%d"),
-            "url":    f"https://tiktok.com/@{v.get('author',{}).get('uniqueId','')}/video/{v.get('id','')}"
-        }
-    except:
-        return None
 
 def get_celebrity_trigger(keyword):
-    celebs = [
-        "Lisa BLACKPINK", "Rihanna", "Dua Lipa", "Kylie Jenner",
-        "Kim Kardashian", "Selena Gomez", "Charli D'Amelio", "MrBeast"
-    ]
+    celebs = ["Lisa BLACKPINK", "Rihanna", "Dua Lipa", "Kylie Jenner", "Kim Kardashian", "Selena Gomez"]
     for celeb in celebs:
         try:
             result = newsapi.get_everything(
-                q=f"{keyword} {celeb}", language="en",
-                sort_by="publishedAt", page_size=1
+                q=f"{keyword} {celeb}",
+                language="en",
+                sort_by="publishedAt",
+                page_size=1
             )
             if result["totalResults"] > 0:
                 a = result["articles"][0]
                 return {
                     "celebrity": celeb,
-                    "date":      a["publishedAt"][:10],
-                    "headline":  a["title"],
-                    "url":       a["url"]
+                    "date": a["publishedAt"][:10],
+                    "headline": a["title"],
+                    "url": a["url"]
                 }
-        except:
+        except Exception as e:
             continue
     return None
 
 
-# ─── BUILD THE TELEGRAM REPORT MESSAGE ──────────────────────────────────────
 def build_report(keyword):
     trends = get_google_trends(keyword)
-    news   = get_first_news(keyword)
-    tiktok = get_first_tiktok(keyword)
-    celeb  = get_celebrity_trigger(keyword)
+    news = get_first_news(keyword)
+    celeb = get_celebrity_trigger(keyword)
 
     msg = f"🔬 <b>ORIGIN REPORT: {keyword.upper()}</b>\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
-        if trends:
-        msg += f"📈 <b>Google Trends</b>\n"
+    if trends:
+        msg += "📈 <b>Google Trends</b>\n"
         msg += f"First Spike: <b>{trends['first_spike']}</b>\n"
         msg += f"Peak: {trends['peak_month']} ({trends['peak_score']}/100)\n"
         if trends['related']:
-            msg += f"Why it spread: {', '.join(trends['related'])}\n"
+            msg += f"Related: {', '.join(trends['related'])}\n"
         msg += "\n"
+
+    if news:
+        msg += "📰 <b>First News Article</b>\n"
+        msg += f"Date: {news['date']} — {news['source']}\n"
+        msg += f"{news['title']}\n"
+        msg += f"<a href='{news['url']}'>Read article</a>\n\n"
+
+    if celeb:
+        msg += "🌟 <b>Celebrity Trigger</b>\n"
+        msg += f"{celeb['celebrity']} — {celeb['date']}\n"
+        msg += f"{celeb['headline']}\n"
+        msg += f"<a href='{celeb['url']}'>Read more</a>\n\n"
+
+    if not trends and not news and not celeb:
+        msg += "❌ No data found. Try a different keyword."
+
+    return msg
+
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    bot.reply_to(
+        message,
+        "👋 <b>Welcome to Viral Origin Researcher!</b>\n\nType:\n/research labubu dolls\n/research stanley cup\n/research ChatGPT",
+        parse_mode="HTML"
+    )
+
+
+@bot.message_handler(commands=['research'])
+def research_command(message):
+    keyword = message.text.replace("/research", "").strip()
+    if not keyword:
+        bot.reply_to(message, "⚠️ Please add a topic!\nExample: /research labubu dolls")
+        return
+    loading = bot.reply_to(message, f"🔍 Researching <b>{keyword}</b>... please wait ⏳", parse_mode="HTML")
+    try:
+        report = build_report(keyword)
+        bot.delete_message(message.chat.id, loading.message_id)
+        bot.send_message(message.chat.id, report, parse_mode="HTML", disable_web_page_preview=False)
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error: {e}")
+
+
+if __name__ == "__main__":
+    print("🤖 Telegram Research Bot started...")
+    bot.infinity_polling()
