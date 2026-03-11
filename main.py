@@ -321,13 +321,27 @@ def run_scan():
 
 
 # ─── 10. SCHEDULER SETUP ───────────────────────────────────────────────────
+import threading
+
+def run_telegram_bot():
+    """Runs telegram bot in background thread"""
+    try:
+        import telebot
+        from telegram_bot import bot
+        print("🤖 Telegram Research Bot started...")
+        bot.infinity_polling()
+    except Exception as e:
+        print(f"[BOT ERROR] {e}")
+
 if __name__ == "__main__":
+    # Start Telegram bot in background thread
+    bot_thread = threading.Thread(target=run_telegram_bot, daemon=True)
+    bot_thread.start()
+
+    # Start hourly scheduler
     scheduler = BlockingScheduler()
     scheduler.add_job(run_scan, "interval", hours=1)
     print("🚀 USA Viral Trend Tracker started. Scanning every hour...")
-    
-    #send_alert([{"topic": "testTopic", "platforms": ["tiktok","twitter"], "viral_score": 75, "detected_at": "now"}])
-    
     try:
         run_scan()
     except Exception as e:
