@@ -182,33 +182,45 @@ def is_new_spike(topic, score, window_hours=6):
 
 
 # ─── 7. ALERT SYSTEM ───────────────────────────────────────────────────────
+import requests
+
 def send_alert(viral_topics):
-    """Sends email alert with viral topic details."""
     if not viral_topics:
         return
-    body = "🔥 VIRAL TREND ALERT — USA\n"
-    body += "=" * 40 + "\n"
+
+    message = "🔥 *USA VIRAL TREND ALERT*\n"
+    message += "━━━━━━━━━━━━━━━━━━━━\n\n"
+
     for t in viral_topics:
-        body += f"\n📌 Topic: #{t['topic'].upper()}\n"
-        body += f"   Platforms: {', '.join(t['platforms'])}\n"
-        body += f"   Viral Score: {t['viral_score']}/100\n"
-        body += f"   Detected: {t['detected_at']}\n"
-    body += "\n" + "=" * 40
-    body += "\nCatch it early. Post now. 🚀"
+        message += f"📌 *#{t['topic'].upper()}*\n"
+        message += f"📱 Platforms: {', '.join(t['platforms'])}\n"
+        message += f"🚀 Viral Score: {t['viral_score']}/100\n"
+        message += f"🕐 Detected: {t['detected_at']}\n\n"
+
+    message += "━━━━━━━━━━━━━━━━━━━━\n"
+    message += "Catch it early\\. Post now\\! 🎯"
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": message,
+        "parse_mode": "MarkdownV2"
+    }
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(ALERT_EMAIL, SMTP_PASS)
-            msg = f"Subject: 🔥 USA Viral Trend Alert\n\n{body}"
-            server.sendmail(ALERT_EMAIL, ALERT_EMAIL, msg)
-        print(f"[ALERT SENT] {len(viral_topics)} trending topics")
+        response = requests.post(url, json=payload)
+        if response.status_code == 200:
+            print(f"[TELEGRAM SENT] {len(viral_topics)} viral topics sent!")
+        else:
+            print(f"[TELEGRAM ERROR] {response.text}")
     except Exception as e:
-        print(f"[EMAIL ERROR] {e}")
+        print(f"[TELEGRAM ERROR] {e}")
 
-    # Also save to JSON log
+    # Still save to log file
     with open("viral_log.json", "a") as f:
         for t in viral_topics:
             f.write(json.dumps(t) + "\n")
+
 
 
 # ─── 8. OPTIONAL: CELEBRITY TRIGGER DETECTOR ───────────────────────────────
