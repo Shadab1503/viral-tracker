@@ -6,5 +6,5 @@ pandas
 pytrends
 rich
 pyTelegramBotAPI
-praw
 google-api-python-client
+wikipedia
