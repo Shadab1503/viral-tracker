@@ -1,6 +1,5 @@
 import os
 import requests
-import praw
 import wikipedia
 import pandas as pd
 from datetime import datetime
