@@ -259,46 +259,65 @@ def check_celebrity_triggers():
 def run_scan():
     print(f"\n[{datetime.utcnow().isoformat()}] Starting USA viral scan...")
 
-    twitter_trends  = get_twitter_trends()
-    tiktok_trends   = get_tiktok_trends()
-    insta_trends    = get_instagram_reels_trends()
-    news_topics     = get_news_trending()
-    celeb_hits      = check_celebrity_triggers()
+    # Each platform fetched safely — one failure won't crash everything
+    twitter_trends = []
+    tiktok_trends = []
+    insta_trends = []
+    news_topics = []
 
-    # Score all topics across platforms
+    try:
+        twitter_trends = get_twitter_trends()
+        print(f"✅ Twitter: {len(twitter_trends)} trends fetched")
+    except Exception as e:
+        print(f"❌ Twitter failed: {e}")
+
+    try:
+        tiktok_trends = get_tiktok_trends()
+        print(f"✅ TikTok: {len(tiktok_trends)} trends fetched")
+    except Exception as e:
+        print(f"❌ TikTok failed: {e}")
+
+    try:
+        insta_trends = get_instagram_reels_trends()
+        print(f"✅ Instagram: {len(insta_trends)} trends fetched")
+    except Exception as e:
+        print(f"❌ Instagram failed: {e}")
+
+    try:
+        news_topics = get_news_trending()
+        print(f"✅ News: {len(news_topics)} topics fetched")
+    except Exception as e:
+        print(f"❌ News failed: {e}")
+
+    try:
+        celeb_hits = check_celebrity_triggers()
+        if celeb_hits:
+            print(f"🌟 Celebrity trigger: {len(celeb_hits)} hits!")
+    except Exception as e:
+        print(f"❌ Celebrity check failed: {e}")
+
+    # Score and alert
     scored = compute_virality(twitter_trends, tiktok_trends, insta_trends, news_topics)
-
-    # Filter to topics that are newly spiking
     new_virals = [
         t for t in scored
         if is_new_spike(t["topic"], t["viral_score"])
-        and t["platform_count"] >= 2    # must be on 2+ platforms
+        and t["platform_count"] >= 2
     ]
 
-    # Add celebrity-triggered topics
-    if celeb_hits:
-        print(f"[CELEB TRIGGER] {len(celeb_hits)} celebrity posts detected!")
-        for hit in celeb_hits:
-            print(f"  → {hit['celebrity']}: {hit['headline']}")
-
-    # Print dashboard
     print(f"\n{'='*50}")
-    print(f"{'TOPIC':<25} {'PLATFORMS':<30} {'SCORE'}")
-    print(f"{'='*50}")
-    for t in scored[:15]:
+    for t in scored[:10]:
         print(f"{t['topic']:<25} {str(t['platforms']):<30} {t['viral_score']}/100")
 
-    # Fire alert if new virals detected
     if new_virals:
-        print(f"\n🔥 {len(new_virals)} NEW VIRAL TOPICS DETECTED!")
+        print(f"\n🔥 {len(new_virals)} NEW VIRAL TOPICS!")
         send_alert(new_virals)
     else:
-        print("\n✅ No new viral spikes detected.")
+        print("\n✅ No new spikes yet.")
 
-    # Save full scan result
     pd.DataFrame(scored).to_csv(
         f"scan_{datetime.utcnow().strftime('%Y%m%d_%H%M')}.csv", index=False
     )
+
 
 
 # ─── 10. SCHEDULER SETUP ───────────────────────────────────────────────────
