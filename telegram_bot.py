@@ -79,25 +79,27 @@ def get_youtube_videos(keyword):
             q=keyword,
             part="snippet",
             type="video",
-            order="date",
-            maxResults=3,
+            order="viewCount",        # ← most viewed = most viral
+            maxResults=5,
             relevanceLanguage="en",
-            regionCode="US"
+            regionCode="US"           # USA only
         )
         response = request.execute()
         videos = []
         for item in response.get("items", []):
+            snippet = item["snippet"]
             videos.append({
-                "title": item["snippet"]["title"],
-                "channel": item["snippet"]["channelTitle"],
-                "date": item["snippet"]["publishedAt"][:10],
-                "url": f"https://youtube.com/watch?v={item['id']['videoId']}",
-                "description": item["snippet"]["description"][:100]
+                "title": snippet["title"],
+                "channel": snippet["channelTitle"],
+                "date": snippet["publishedAt"][:10],
+                "url": f"https://youtube.com/watch?v={item['id']['videoId']}"
             })
+        # Sort oldest first to show origin
         videos.sort(key=lambda x: x["date"])
-        return videos
+        return videos[:3]
     except Exception as e:
         return []
+
 
 
 # ─── 4. REDDIT — Earliest posts & discussions ──────────────────────────────
