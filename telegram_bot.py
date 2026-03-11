@@ -49,35 +49,40 @@ def get_google_trends(keyword):
 # ─── 2. NEWS — Multiple articles sorted oldest first ───────────────────────
 def get_news_articles(keyword):
     try:
-        # Search with origin-focused terms
-        origin_queries = [
-            f'"{keyword}" launch OR debut OR "went viral" OR "first time"',
-            f'"{keyword}" trending OR viral OR exploded',
-            f"{keyword}"
-        ]
-        all_articles = []
-        for query in origin_queries:
-            result = newsapi.get_everything(
-                q=query,
-                language="en",
-                sort_by="relevancy",
-                page_size=3
-            )
-            for a in result.get("articles", []):
-                url = a["url"]
-                if url not in [x["url"] for x in all_articles]:
-                    all_articles.append({
-                        "title": a["title"],
-                        "source": a["source"]["name"],
-                        "date": a["publishedAt"][:10],
-                        "url": url,
-                        "description": (a.get("description") or "")[:120]
-                    })
-            if len(all_articles) >= 3:
-                break
+        # Google News RSS - free, no API key, full history
+        import xml.etree.ElementTree as ET
+        query = keyword.replace(" ", "+")
+        url = f"https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
+        response = requests.get(url, timeout=10)
+        root = ET.fromstring(response.content)
 
-        all_articles.sort(key=lambda x: x["date"])
-        return all_articles[:3]
+        articles = []
+        for item in root.findall(".//item")[:5]:
+            title = item.find("title").text or ""
+            link = item.find("link").text or ""
+            pub_date = item.find("pubDate").text or ""
+            source_tag = item.find("{https://news.google.com/rss}source")
+            source = source_tag.text if source_tag is not None else "Google News"
+
+            # Parse date
+            try:
+                from email.utils import parsedate_to_datetime
+                date = parsedate_to_datetime(pub_date).strftime("%Y-%m-%d")
+            except:
+                date = pub_date[:10]
+
+            # Only include if keyword in title
+            if keyword.lower() in title.lower():
+                articles.append({
+                    "title": title,
+                    "source": source,
+                    "date": date,
+                    "url": link,
+                    "description": ""
+                })
+
+        articles.sort(key=lambda x: x["date"])
+        return articles[:3]
     except Exception as e:
         return []
 
@@ -87,7 +92,6 @@ def get_news_articles(keyword):
 def get_youtube_videos(keyword):
     try:
         youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
-        # Search for origin/viral moment specifically
         search_queries = [
             f"{keyword} went viral",
             f"{keyword} origin explained",
@@ -99,7 +103,7 @@ def get_youtube_videos(keyword):
                 q=query,
                 part="snippet",
                 type="video",
-                order="viewCount",        # most viewed = truly viral
+                order="viewCount",
                 maxResults=3,
                 relevanceLanguage="en",
                 regionCode="US"
@@ -107,12 +111,10 @@ def get_youtube_videos(keyword):
             response = request.execute()
             for item in response.get("items", []):
                 snippet = item["snippet"]
-                # Only English titles
                 title = snippet["title"]
                 channel = snippet["channelTitle"]
                 date = snippet["publishedAt"][:10]
                 url = f"https://youtube.com/watch?v={item['id']['videoId']}"
-                # Avoid duplicates
                 if url not in [v["url"] for v in all_videos]:
                     all_videos.append({
                         "title": title,
@@ -121,12 +123,15 @@ def get_youtube_videos(keyword):
                         "url": url
                     })
 
-        # Sort oldest first to show true origin
+        all_videos = [
+            v for v in all_videos
+            if keyword.lower() in v["title"].lower()
+        ]
+
         all_videos.sort(key=lambda x: x["date"])
         return all_videos[:3]
     except Exception as e:
         return []
-
 
 # ─── 4. REDDIT — Earliest posts & discussions ──────────────────────────────
 def get_reddit_posts(keyword):
