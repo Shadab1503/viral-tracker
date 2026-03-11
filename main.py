@@ -326,7 +326,7 @@ if __name__ == "__main__":
     scheduler.add_job(run_scan, "interval", hours=1)
     print("🚀 USA Viral Trend Tracker started. Scanning every hour...")
     
-    send_alert([{"topic": "testTopic", "platforms": ["tiktok","twitter"], "viral_score": 75, "detected_at": "now"}])
+    #send_alert([{"topic": "testTopic", "platforms": ["tiktok","twitter"], "viral_score": 75, "detected_at": "now"}])
     
     try:
         run_scan()
