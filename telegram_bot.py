@@ -118,9 +118,10 @@ def build_report(keyword):
     msg = f"🔬 <b>ORIGIN REPORT: {keyword.upper()}</b>\n"
     msg += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
-    if trends:
+        if trends:
         msg += f"📈 <b>Google Trends</b>\n"
         msg += f"First Spike: <b>{trends['first_spike']}</b>\n"
         msg += f"Peak: {trends['peak_month']} ({trends['peak_score']}/100)\n"
         if trends['related']:
-msg += f"Why it spread: {', '.join(trends['related'])}\n"
+            msg += f"Why it spread: {', '.join(trends['related'])}\n"
+        msg += "\n"
