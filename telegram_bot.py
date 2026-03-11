@@ -50,13 +50,23 @@ def get_google_trends(keyword):
 def get_news_articles(keyword):
     try:
         result = newsapi.get_everything(
-            q=keyword,
+            q=f'"{keyword}"',          # ← exact match in quotes
             language="en",
-            sort_by="publishedAt",
-            from_param="2020-01-01",
+            sort_by="relevancy",       # ← most relevant first
             page_size=5
         )
-        articles = sorted(result.get("articles", []), key=lambda x: x["publishedAt"])
+        articles = result.get("articles", [])
+        if not articles:
+            # fallback: try without exact match
+            result = newsapi.get_everything(
+                q=keyword,
+                language="en",
+                sort_by="publishedAt",
+                page_size=5
+            )
+            articles = result.get("articles", [])
+
+        articles = sorted(articles, key=lambda x: x["publishedAt"])
         output = []
         for a in articles[:3]:
             output.append({
@@ -69,6 +79,7 @@ def get_news_articles(keyword):
         return output
     except Exception as e:
         return []
+
 
 
 # ─── 3. YOUTUBE — Earliest videos about this topic ─────────────────────────
