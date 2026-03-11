@@ -9,12 +9,14 @@ from newsapi import NewsApiClient
 from apscheduler.schedulers.blocking import BlockingScheduler
 import pandas as pd
 
-# ─── CONFIG ────────────────────────────────────────────────────────────────
-APIFY_TOKEN       = "YOUR_APIFY_TOKEN"       # apify.com → free trial available
-NEWSAPI_KEY       = "YOUR_NEWSAPI_KEY"        # newsapi.org → free 100 req/day
-ALERT_EMAIL       = "you@gmail.com"           # where alerts go
-SMTP_PASS         = "your_app_password"       # Gmail App Password
-VIRALITY_THRESHOLD = 3                        # how many platforms must agree
+# ─── CONFIG ────────────────────────────────────
+import os
+APIFY_TOKEN        = os.environ.get("APIFY_TOKEN")
+NEWSAPI_KEY        = os.environ.get("NEWSAPI_KEY")
+ALERT_EMAIL        = os.environ.get("ALERT_EMAIL")
+SMTP_PASS          = os.environ.get("SMTP_PASS")
+VIRALITY_THRESHOLD = 3
+
 
 # Optional: Virlo API (dev.virlo.ai) for deeper TikTok scoring
 VIRLO_API_KEY     = "YOUR_VIRLO_KEY"          # optional
