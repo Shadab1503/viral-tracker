@@ -123,4 +123,4 @@ def build_report(keyword):
         msg += f"First Spike: <b>{trends['first_spike']}</b>\n"
         msg += f"Peak: {trends['peak_month']} ({trends['peak_score']}/100)\n"
         if trends['related']:
-            msg += f"Why it sp
+msg += f"Why it spread: {', '.join(trends['related'])}\n"
