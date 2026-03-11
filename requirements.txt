@@ -1,0 +1,5 @@
+apify-client
+newsapi-python
+APScheduler
+requests
+pandas
