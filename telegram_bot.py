@@ -49,34 +49,35 @@ def get_google_trends(keyword):
 # ─── 2. NEWS — Multiple articles sorted oldest first ───────────────────────
 def get_news_articles(keyword):
     try:
-        result = newsapi.get_everything(
-            q=f'"{keyword}"',          # ← exact match in quotes
-            language="en",
-            sort_by="relevancy",       # ← most relevant first
-            page_size=5
-        )
-        articles = result.get("articles", [])
-        if not articles:
-            # fallback: try without exact match
+        # Search with origin-focused terms
+        origin_queries = [
+            f'"{keyword}" launch OR debut OR "went viral" OR "first time"',
+            f'"{keyword}" trending OR viral OR exploded',
+            f"{keyword}"
+        ]
+        all_articles = []
+        for query in origin_queries:
             result = newsapi.get_everything(
-                q=keyword,
+                q=query,
                 language="en",
-                sort_by="publishedAt",
-                page_size=5
+                sort_by="relevancy",
+                page_size=3
             )
-            articles = result.get("articles", [])
+            for a in result.get("articles", []):
+                url = a["url"]
+                if url not in [x["url"] for x in all_articles]:
+                    all_articles.append({
+                        "title": a["title"],
+                        "source": a["source"]["name"],
+                        "date": a["publishedAt"][:10],
+                        "url": url,
+                        "description": (a.get("description") or "")[:120]
+                    })
+            if len(all_articles) >= 3:
+                break
 
-        articles = sorted(articles, key=lambda x: x["publishedAt"])
-        output = []
-        for a in articles[:3]:
-            output.append({
-                "title": a["title"],
-                "source": a["source"]["name"],
-                "date": a["publishedAt"][:10],
-                "url": a["url"],
-                "description": (a.get("description") or "")[:120]
-            })
-        return output
+        all_articles.sort(key=lambda x: x["date"])
+        return all_articles[:3]
     except Exception as e:
         return []
 
@@ -86,31 +87,45 @@ def get_news_articles(keyword):
 def get_youtube_videos(keyword):
     try:
         youtube = build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
-        request = youtube.search().list(
-            q=keyword,
-            part="snippet",
-            type="video",
-            order="viewCount",        # ← most viewed = most viral
-            maxResults=5,
-            relevanceLanguage="en",
-            regionCode="US"           # USA only
-        )
-        response = request.execute()
-        videos = []
-        for item in response.get("items", []):
-            snippet = item["snippet"]
-            videos.append({
-                "title": snippet["title"],
-                "channel": snippet["channelTitle"],
-                "date": snippet["publishedAt"][:10],
-                "url": f"https://youtube.com/watch?v={item['id']['videoId']}"
-            })
-        # Sort oldest first to show origin
-        videos.sort(key=lambda x: x["date"])
-        return videos[:3]
+        # Search for origin/viral moment specifically
+        search_queries = [
+            f"{keyword} went viral",
+            f"{keyword} origin explained",
+            f"{keyword} first viral video"
+        ]
+        all_videos = []
+        for query in search_queries:
+            request = youtube.search().list(
+                q=query,
+                part="snippet",
+                type="video",
+                order="viewCount",        # most viewed = truly viral
+                maxResults=3,
+                relevanceLanguage="en",
+                regionCode="US"
+            )
+            response = request.execute()
+            for item in response.get("items", []):
+                snippet = item["snippet"]
+                # Only English titles
+                title = snippet["title"]
+                channel = snippet["channelTitle"]
+                date = snippet["publishedAt"][:10]
+                url = f"https://youtube.com/watch?v={item['id']['videoId']}"
+                # Avoid duplicates
+                if url not in [v["url"] for v in all_videos]:
+                    all_videos.append({
+                        "title": title,
+                        "channel": channel,
+                        "date": date,
+                        "url": url
+                    })
+
+        # Sort oldest first to show true origin
+        all_videos.sort(key=lambda x: x["date"])
+        return all_videos[:3]
     except Exception as e:
         return []
-
 
 
 # ─── 4. REDDIT — Earliest posts & discussions ──────────────────────────────
