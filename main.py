@@ -188,23 +188,23 @@ def send_alert(viral_topics):
     if not viral_topics:
         return
 
-    message = "🔥 *USA VIRAL TREND ALERT*\n"
+    message = "🔥 <b>USA VIRAL TREND ALERT</b>\n"
     message += "━━━━━━━━━━━━━━━━━━━━\n\n"
 
     for t in viral_topics:
-        message += f"📌 *#{t['topic'].upper()}*\n"
+        message += f"📌 <b>#{t['topic'].upper()}</b>\n"
         message += f"📱 Platforms: {', '.join(t['platforms'])}\n"
         message += f"🚀 Viral Score: {t['viral_score']}/100\n"
         message += f"🕐 Detected: {t['detected_at']}\n\n"
 
     message += "━━━━━━━━━━━━━━━━━━━━\n"
-    message += "Catch it early\\. Post now\\! 🎯"
+    message += "Catch it early. Post now! 🎯"
 
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message,
-        "parse_mode": "MarkdownV2"
+        "parse_mode": "HTML"
     }
 
     try:
@@ -216,10 +216,10 @@ def send_alert(viral_topics):
     except Exception as e:
         print(f"[TELEGRAM ERROR] {e}")
 
-    # Still save to log file
     with open("viral_log.json", "a") as f:
         for t in viral_topics:
             f.write(json.dumps(t) + "\n")
+
 
 
 
