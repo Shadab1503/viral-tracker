@@ -22,9 +22,6 @@ apify   = ApifyClient(APIFY_TOKEN)
 newsapi = NewsApiClient(api_key=NEWSAPI_KEY)
 
 
-)
-
-
 # ─── 1. GOOGLE TRENDS ──────────────────────────────────────────────────────
 def get_google_trends(keyword):
     try:
